@@ -1,4 +1,5 @@
 import argparse
+from multiprocessing import pool
 import multiprocess
 import warnings
 import time
@@ -185,7 +186,8 @@ def compute_snr(
     h_plus = np.asarray(hf[0])[1:]
     h_cross = np.asarray(hf[1])[1:]
     snr_squared = 4.0 * np.sum((np.abs(h_plus) ** 2 + np.abs(h_cross) ** 2) / cubic_spline_psd(f_pos) * df)
-    return float(np.sqrt(snr_squared))
+    f_gw_initial = float(2 * np.asarray(fphi).flat[0])
+    return float(np.sqrt(snr_squared)), f_gw_initial
 
 
 def _worker_compute_snr(args):
@@ -255,8 +257,12 @@ def average_snr(
     else:
         results = pool.map(_worker_compute_snr, sample_args)
 
-    angles = np.asarray(np.array(sample_args)[:, 6:12],dtype=float)  # Extract angles from sample_args
-    return results, angles
+    snrs = np.array([result[0] for result in results])
+    f_gw_initials = np.array([result[1] for result in results])
+
+    angles = np.asarray(np.array(sample_args)[:, 6:12],dtype=float)
+
+    return snrs, f_gw_initials, angles
 
 
 if __name__ == "__main__":
