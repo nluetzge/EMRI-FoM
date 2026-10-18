@@ -154,8 +154,10 @@ def compute_snr(
     cubic_spline_psd, fmin, fmax = get_psd_wrapper(psd)
     fmax = min(fmax, 5*fphi.max())  # Limit fmax to 4 times the last orbital frequency to avoid extrapolation
     fmin = max(fmin, 1*fphi.min())  # Limit fmin to 0.1 times the first orbital frequency to avoid extrapolation
-    f_pos = np.linspace(fmin, fmax, num=num_freq)
-    freq = np.hstack((-f_pos[::-1], np.asarray([0.0]), f_pos))
+    df = (fmax - fmin) / (num_freq - 1)
+    n = int(np.floor(fmax / df))
+    freq = np.arange(-n, n + 1) * df
+    f_pos = freq[freq > 0]
     # print(f"fmin={fmin}, fmax={fmax}")
 
     hf = FEW_GEN(
@@ -182,7 +184,6 @@ def compute_snr(
 
     h_plus = np.asarray(hf[0])[1:]
     h_cross = np.asarray(hf[1])[1:]
-    df = f_pos[1] - f_pos[0]
     snr_squared = 4.0 * np.sum((np.abs(h_plus) ** 2 + np.abs(h_cross) ** 2) / cubic_spline_psd(f_pos) * df)
     return float(np.sqrt(snr_squared))
 
